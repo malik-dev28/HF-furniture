@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import userModel from '../models/userModel.js';
+import pool from '../config/mysql.js';
 
 const authUser = async (req, res, next) => {
     try {
@@ -29,16 +29,17 @@ const authUser = async (req, res, next) => {
                 return res.status(401).json({ success: false, message: 'Token invalid' });
             }
 
-            const user = await userModel.findById(decoded.id).select('-password');
+            const [users] = await pool.execute("SELECT id, role, isActive FROM users WHERE id = ?", [decoded.id]);
+            const user = users[0];
             if (!user) {
                 return res.status(401).json({ success: false, message: 'User not found' });
             }
-            if (user.isActive === false) {
+            if (user.isActive === 0) {
                 return res.status(403).json({ success: false, message: 'Account disabled' });
             }
 
             // Attach user (and preserve role/id) for downstream handlers
-            req.user = { id: user._id.toString(), role: user.role, user };
+            req.user = { id: user.id, role: user.role };
             next();
     } catch (error) {
             if (error && error.name === 'TokenExpiredError') {

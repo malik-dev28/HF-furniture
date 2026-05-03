@@ -1,7 +1,7 @@
 import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import userModel from "../models/userModel.js";
+import pool from "../config/mysql.js";
 
 // Route for updating user profile and password
 const updateProfile = async (req, res) => {
@@ -11,43 +11,62 @@ const updateProfile = async (req, res) => {
       return res.json({ success: false, message: "Unauthorized" });
     }
     const { name, email, phone, password } = req.body;
-    const updateFields = {};
-    if (name) updateFields.name = name;
+    
+    let query = "UPDATE users SET ";
+    const params = [];
+    const fields = [];
+
+    if (name) {
+      fields.push("name = ?");
+      params.push(name);
+    }
     if (email) {
       const cleanEmail = String(email).trim().toLowerCase();
       if (!validator.isEmail(cleanEmail)) {
         return res.json({ success: false, message: "Please enter a valid email" });
       }
+      
       // Check for duplicate email (not current user)
-      const existing = await userModel.findOne({ email: cleanEmail, _id: { $ne: userId } });
-      if (existing) {
+      const [existing] = await pool.execute("SELECT id FROM users WHERE email = ? AND id != ?", [cleanEmail, userId]);
+      if (existing.length > 0) {
         return res.json({ success: false, message: "Email already in use" });
       }
-      updateFields.email = cleanEmail;
+      fields.push("email = ?");
+      params.push(cleanEmail);
     }
-    if (phone) updateFields.phone = phone;
+    if (phone) {
+      fields.push("phone = ?");
+      params.push(phone);
+    }
     if (password) {
       if (password.length < 8) {
         return res.json({ success: false, message: "Please enter a strong password" });
       }
       const salt = await bcrypt.genSalt(10);
-      updateFields.password = await bcrypt.hash(password, salt);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      fields.push("password = ?");
+      params.push(hashedPassword);
     }
-    console.log('Attempting profile update:', { userId, updateFields });
-    const updatedUser = await userModel.findByIdAndUpdate(userId, updateFields, { new: true });
-    if (!updatedUser) {
+
+    if (fields.length === 0) {
+      return res.json({ success: false, message: "No fields to update" });
+    }
+
+    query += fields.join(", ") + " WHERE id = ?";
+    params.push(userId);
+
+    const [result] = await pool.execute(query, params);
+    
+    if (result.affectedRows === 0) {
       return res.json({ success: false, message: "User not found" });
     }
-    res.json({ success: true, user: updatedUser });
+
+    const [updatedUsers] = await pool.execute("SELECT id, name, email, phone, role, isActive, cartData, createdAt FROM users WHERE id = ?", [userId]);
+    res.json({ success: true, user: updatedUsers[0] });
   } catch (error) {
     console.error('Profile update error:', error.stack || error);
-    res.json({ success: false, message: error.message, stack: error.stack });
+    res.json({ success: false, message: error.message });
   }
-
-};
-
-const createToken = (payload) => {
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1d" });
 };
 
 const createTokenCustomer = (id, role = "user") => {
@@ -61,20 +80,20 @@ const loginUser = async (req, res) => {
     email = String(email || '').trim().toLowerCase();
     password = String(password || '');
 
-    const user = await userModel.findOne({ email });
+    const [users] = await pool.execute("SELECT * FROM users WHERE email = ?", [email]);
+    const user = users[0];
 
     if (!user) {
       return res.json({ success: false, message: "User doesn't exists" });
     }
 
-    // Prevent disabled users from logging in
-    if (user.isActive === false) {
+    if (user.isActive === 0) {
       return res.status(403).json({ success: false, message: 'Account disabled. Contact support.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (isMatch) {
-      const token = createTokenCustomer(user._id, user.role);
+      const token = createTokenCustomer(user.id, user.role);
       res.json({ success: true, token });
     } else {
       res.json({ success: false, message: "Invalid credentials" });
@@ -85,45 +104,34 @@ const loginUser = async (req, res) => {
   }
 };
 
-// Route for user register (only regular users, auto-login after register)
+// Route for user register
 const registerUser = async (req, res) => {
   try {
     let { name, email, password, phone } = req.body;
     email = String(email || '').trim().toLowerCase();
     password = String(password || '');
 
-    // checking user already exists or not
-    const exists = await userModel.findOne({ email });
-    if (exists) {
+    const [exists] = await pool.execute("SELECT id FROM users WHERE email = ?", [email]);
+    if (exists.length > 0) {
       return res.json({ success: false, message: "User already exists" });
     }
 
-    // validating email format & strong password
     if (!validator.isEmail(email)) {
-      return res.json({
-        success: false,
-        message: "Please enter a valid email",
-      });
+      return res.json({ success: false, message: "Please enter a valid email" });
     }
     if (password.length < 8) {
-      return res.json({
-        success: false,
-        message: "Please enter a strong password",
-      });
+      return res.json({ success: false, message: "Please enter a strong password" });
     }
 
-    // create user; the model's pre-save hook will hash the password
-    const newUser = new userModel({
-      name,
-      email,
-      password,
-      role: "user",
-      phone,
-    });
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    const user = await newUser.save();
+    const [result] = await pool.execute(
+      "INSERT INTO users (name, email, password, phone, role) VALUES (?, ?, ?, ?, 'user')",
+      [name, email, hashedPassword, phone]
+    );
 
-    const token = createTokenCustomer(user._id);
+    const token = createTokenCustomer(result.insertId);
     res.json({ success: true, token });
   } catch (error) {
     console.log(error);
@@ -137,24 +145,26 @@ const adminLogin = async (req, res) => {
   try {
     const cleanEmail = String(email || '').trim().toLowerCase();
     const cleanPass = String(password || '');
-    // First try to find an admin user in the database
-    const dbAdmin = await userModel.findOne({ email: cleanEmail, role: { $in: ["admin", "superadmin"] } });
+
+    const [admins] = await pool.execute(
+      "SELECT * FROM users WHERE email = ? AND role IN ('admin', 'superadmin')",
+      [cleanEmail]
+    );
+    const dbAdmin = admins[0];
+
     if (dbAdmin) {
-      // Prevent disabled admins from logging in
-      if (dbAdmin.isActive === false) {
+      if (dbAdmin.isActive === 0) {
         return res.status(403).json({ success: false, message: 'Account disabled. Contact support.' });
       }
       const isMatch = await bcrypt.compare(cleanPass, dbAdmin.password);
       if (!isMatch) return res.json({ success: false, message: "Invalid credentials" });
-      const token = createTokenCustomer(dbAdmin._id, dbAdmin.role);
+      const token = createTokenCustomer(dbAdmin.id, dbAdmin.role);
       return res.json({ success: true, token });
     }
 
-    // Fallback to environment admin credentials (legacy)
     const adminEmail = (process.env.ADMIN_EMAIL || "").replace(/\"/g, "").trim().toLowerCase();
     const adminPass = (process.env.ADMIN_PASSWORD || "").replace(/\"/g, "").trim();
     if (cleanEmail === adminEmail && cleanPass === adminPass) {
-      // create a token for the env-admin — this token has a synthetic id so profile endpoints can still work read-only
       const token = createTokenCustomer("env-admin", "admin");
       return res.json({ success: true, token });
     }
@@ -166,45 +176,34 @@ const adminLogin = async (req, res) => {
   }
 };
 
-// route for admin register
+// Route for admin register
 const adminRegister = async (req, res) => {
   try {
     let { name, email, password, phone } = req.body;
     email = String(email || '').trim().toLowerCase();
     password = String(password || '');
 
-    // checking user already exists or not
-    const exists = await userModel.findOne({ email });
-    if (exists) {
+    const [exists] = await pool.execute("SELECT id FROM users WHERE email = ?", [email]);
+    if (exists.length > 0) {
       return res.json({ success: false, message: "User already exists" });
     }
 
-    // validating email format & strong password
     if (!validator.isEmail(email)) {
-      return res.json({
-        success: false,
-        message: "Please enter a valid email",
-      });
+      return res.json({ success: false, message: "Please enter a valid email" });
     }
     if (password.length < 8) {
-      return res.json({
-        success: false,
-        message: "Please enter a strong password",
-      });
+      return res.json({ success: false, message: "Please enter a strong password" });
     }
 
-    // create admin user; model pre-save hook will hash the password
-    const newUser = new userModel({
-      name,
-      email,
-      password,
-      role: "admin",
-      phone,
-    });
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    const user = await newUser.save();
+    const [result] = await pool.execute(
+      "INSERT INTO users (name, email, password, phone, role) VALUES (?, ?, ?, ?, 'admin')",
+      [name, email, hashedPassword, phone]
+    );
 
-    const token = createTokenCustomer(user._id, 'admin');
+    const token = createTokenCustomer(result.insertId, 'admin');
     res.json({ success: true, token });
   } catch (error) {
     console.log(error);
@@ -216,17 +215,17 @@ const userProfile = async (req, res) => {
   try {
     const userId = req.user?.id;
 
-    // If token was issued for the environment admin (no DB record)
     if (!userId || userId === 'env-admin') {
-      // If env-admin, return a minimal profile from env variables
       const adminEmail = (process.env.ADMIN_EMAIL || "").replace(/\"/g, "").trim();
-      if (req.user?.role === 'admin' && req.user?.id === 'env-admin' && req.user?.role) {
+      if (req.user?.role === 'admin' && req.user?.id === 'env-admin') {
         return res.json({ success: true, user: { name: 'Administrator', email: adminEmail, role: 'admin' } });
       }
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
-    const user = await userModel.findById(userId);
+    const [users] = await pool.execute("SELECT id, name, email, phone, role, isActive, cartData, createdAt FROM users WHERE id = ?", [userId]);
+    const user = users[0];
+
     if (!user) {
       return res.status(404).json({ success: false, message: "User doesn't exist" });
     }
@@ -236,11 +235,9 @@ const userProfile = async (req, res) => {
   }
 };
 
-// Admin-only: list users
 const listUsers = async (req, res) => {
   try {
-    // exclude sensitive fields like password
-    const users = await userModel.find().select('-password').sort({ createdAt: -1 }).lean();
+    const [users] = await pool.execute("SELECT id, name, email, phone, role, isActive, createdAt FROM users ORDER BY createdAt DESC");
     res.json({ success: true, users });
   } catch (err) {
     console.error('List users error:', err);
@@ -248,7 +245,6 @@ const listUsers = async (req, res) => {
   }
 };
 
-// Admin-only: toggle user active status
 const updateUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -256,11 +252,11 @@ const updateUserStatus = async (req, res) => {
     if (typeof isActive === 'undefined') {
       return res.status(400).json({ success: false, message: 'isActive is required' });
     }
-    const user = await userModel.findById(id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    user.isActive = !!isActive;
-    await user.save();
-    res.json({ success: true, user });
+    
+    await pool.execute("UPDATE users SET isActive = ? WHERE id = ?", [isActive ? 1 : 0, id]);
+    
+    const [users] = await pool.execute("SELECT * FROM users WHERE id = ?", [id]);
+    res.json({ success: true, user: users[0] });
   } catch (err) {
     console.error('Update user status error:', err);
     res.status(500).json({ success: false, message: 'Server error' });

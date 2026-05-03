@@ -1,33 +1,29 @@
-import userModel from "../models/userModel.js";
-import mongoose from "mongoose"; // Import mongoose for ObjectId validation
+import pool from "../config/mysql.js";
 
 // Add products to user cart
 const addToCart = async (req, res) => {
   try {
-    // Accept userId from body, query, or authenticated token (req.user)
     const { userId: bodyUserId, itemId, Colors } = req.body;
     const userId = bodyUserId || req.query?.userId || req.user?.id;
 
-    // Validate inputs
-    if (!userId || !mongoose.isValidObjectId(userId) || !mongoose.isValidObjectId(itemId)) {
+    if (!userId || !itemId) {
       return res.status(400).json({ success: false, message: "Invalid userId or itemId" });
     }
 
-    // Colors can be the special key 'default' when no color is chosen
     if (!Colors || typeof Colors !== "string") {
       return res.status(400).json({ success: false, message: "Colors is required and must be a string" });
     }
 
-    // Normalize Colors to avoid case-sensitivity issues
     const normalizedColors = Colors.toLowerCase();
 
-    const userData = await userModel.findById(userId);
+    const [users] = await pool.execute("SELECT cartData FROM users WHERE id = ?", [userId]);
+    const userData = users[0];
     if (!userData) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Initialize cartData if not present or invalid
-    let cartData = userData.cartData && typeof userData.cartData === "object" ? userData.cartData : {};
+    let cartData = userData.cartData || {};
+    if (typeof cartData === 'string') cartData = JSON.parse(cartData);
 
     if (cartData[itemId]) {
       if (cartData[itemId][normalizedColors]) {
@@ -40,7 +36,7 @@ const addToCart = async (req, res) => {
       cartData[itemId][normalizedColors] = 1;
     }
 
-    await userModel.findByIdAndUpdate(userId, { cartData });
+    await pool.execute("UPDATE users SET cartData = ? WHERE id = ?", [JSON.stringify(cartData), userId]);
 
     res.json({ success: true, message: "Added to cart" });
   } catch (error) {
@@ -56,11 +52,9 @@ const updateCart = async (req, res) => {
     let { quantity } = req.body;
     const userId = bodyUserId || req.query?.userId || req.user?.id;
 
-    // Coerce quantity to number
     quantity = Number(quantity);
 
-    // Validate inputs
-    if (!userId || !mongoose.isValidObjectId(userId) || !mongoose.isValidObjectId(itemId)) {
+    if (!userId || !itemId) {
       return res.status(400).json({ success: false, message: "Invalid userId or itemId" });
     }
     if (!Colors || typeof Colors !== "string") {
@@ -70,22 +64,21 @@ const updateCart = async (req, res) => {
       return res.status(400).json({ success: false, message: "Quantity must be a non-negative number" });
     }
 
-    // Normalize Colors
     const normalizedColors = Colors.toLowerCase();
 
-    const userData = await userModel.findById(userId);
+    const [users] = await pool.execute("SELECT cartData FROM users WHERE id = ?", [userId]);
+    const userData = users[0];
     if (!userData) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Initialize cartData if not present or invalid
-    let cartData = userData.cartData && typeof userData.cartData === "object" ? userData.cartData : {};
+    let cartData = userData.cartData || {};
+    if (typeof cartData === 'string') cartData = JSON.parse(cartData);
 
     if (!cartData[itemId]) {
       cartData[itemId] = {};
     }
 
-    // Update quantity or remove item if quantity is 0
     if (quantity === 0) {
       delete cartData[itemId][normalizedColors];
       if (Object.keys(cartData[itemId]).length === 0) {
@@ -95,7 +88,7 @@ const updateCart = async (req, res) => {
       cartData[itemId][normalizedColors] = quantity;
     }
 
-    await userModel.findByIdAndUpdate(userId, { cartData });
+    await pool.execute("UPDATE users SET cartData = ? WHERE id = ?", [JSON.stringify(cartData), userId]);
 
     res.json({ success: true, message: "Cart updated" });
   } catch (error) {
@@ -107,21 +100,21 @@ const updateCart = async (req, res) => {
 // Get user cart data
 const getUserCart = async (req, res) => {
   try {
-    // Accept userId from body, query, or authenticated token
     const bodyUserId = req.body?.userId;
     const userId = bodyUserId || req.query?.userId || req.user?.id;
 
-    // Validate userId
-    if (!userId || !mongoose.isValidObjectId(userId)) {
+    if (!userId) {
       return res.status(400).json({ success: false, message: "Invalid userId" });
     }
 
-    const userData = await userModel.findById(userId);
+    const [users] = await pool.execute("SELECT cartData FROM users WHERE id = ?", [userId]);
+    const userData = users[0];
     if (!userData) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    const cartData = userData.cartData && typeof userData.cartData === "object" ? userData.cartData : {};
+    let cartData = userData.cartData || {};
+    if (typeof cartData === 'string') cartData = JSON.parse(cartData);
 
     res.json({ success: true, cartData });
   } catch (error) {
@@ -130,4 +123,4 @@ const getUserCart = async (req, res) => {
   }
 };
 
-export { addToCart, updateCart, getUserCart };
+export { addToCart, updateCart, getUserCart };

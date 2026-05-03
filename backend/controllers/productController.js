@@ -1,10 +1,6 @@
-// controllers/productController.js
-
 import cloudinary from "../config/cloudinary.js";
-import productModel from "../models/productModel.js";
-import userModel from "../models/userModel.js";
+import pool from "../config/mysql.js";
 
-// Add product
 // Add product
 const addProduct = async (req, res) => {
   try {
@@ -17,15 +13,9 @@ const addProduct = async (req, res) => {
       quantity,
     } = req.body;
 
-    // Resolve admin id from token (req.user set by auth middleware) or fallback to req.admin
-    let adminUser = null;
+    let adminUserId = null;
     const tokenPayload = req.user || req.admin || {};
-    const userIdFromAuth = tokenPayload.id || tokenPayload._id || tokenPayload.userId;
-    if (userIdFromAuth) {
-      adminUser = await userModel.findById(userIdFromAuth).select('_id email role').lean();
-    } else if (tokenPayload.email) {
-      adminUser = await userModel.findOne({ email: tokenPayload.email }).select('_id email role').lean();
-    }
+    adminUserId = tokenPayload.id || tokenPayload._id || tokenPayload.userId;
 
     if (
       !name ||
@@ -40,7 +30,6 @@ const addProduct = async (req, res) => {
         .json({ success: false, message: "Missing required fields." });
     }
 
-    // Defensive check for multer input structure
     const imageFiles = [
       ...(req.files?.image1 || []),
       ...(req.files?.image2 || []),
@@ -48,9 +37,6 @@ const addProduct = async (req, res) => {
       ...(req.files?.image4 || []),
     ];
 
-    console.log("Received image files:", imageFiles);
-
-    // Validate presence of files before uploading
     if (imageFiles.length === 0) {
       return res
         .status(400)
@@ -60,11 +46,8 @@ const addProduct = async (req, res) => {
     const imagesUrl = await Promise.all(
       imageFiles.map(async (file) => {
         if (!file?.path) {
-          throw new Error(
-            "File path is missing for one of the uploaded images."
-          );
+          throw new Error("File path is missing for one of the uploaded images.");
         }
-
         const result = await cloudinary.uploader.upload(file.path, {
           resource_type: "image",
         });
@@ -72,40 +55,22 @@ const addProduct = async (req, res) => {
       })
     );
 
-    console.log("Uploaded image URLs:", imagesUrl);
+    const parsedColors = typeof colors === "string" ? JSON.parse(colors) : colors;
+    const bestseller = req.body.bestseller === 'true' || req.body.bestseller === true ? 1 : 0;
 
-    const parsedColors =
-      typeof colors === "string" ? JSON.parse(colors) : colors;
+    // Check for existing product by name
+    const [existing] = await pool.execute("SELECT id FROM products WHERE LOWER(name) = ?", [name.toLowerCase().trim()]);
+    if (existing.length > 0) {
+      return res.status(400).json({ success: false, message: 'Product with this name already exists.' });
+    }
 
-    const productData = {
-      name,
-      description,
-      category,
-      subCategory,
-      colors: parsedColors,
-        quantity: parseInt(quantity),
-        bestseller: req.body.bestseller === 'true' || req.body.bestseller === true,
-      image: imagesUrl,
-      date: new Date(),
-      // If adminUser exists use its _id, otherwise leave createdBy undefined (superadmin static create)
-      ...(adminUser && { createdBy: adminUser._id }),
-    };
+    const [result] = await pool.execute(
+      "INSERT INTO products (name, description, category, subCategory, colors, quantity, bestseller, image, createdBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [name, description, category, subCategory, JSON.stringify(parsedColors), parseInt(quantity), bestseller, JSON.stringify(imagesUrl), adminUserId]
+    );
 
-      // Check for existing product by name (case-insensitive)
-      const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const nameKey = name ? name.toString().trim() : '';
-      const existing = nameKey
-        ? await productModel.findOne({ name: { $regex: `^${escapeRegex(nameKey)}$`, $options: 'i' } })
-        : null;
-
-      if (existing) {
-        return res.status(400).json({ success: false, message: 'Product with this name already exists.' });
-      }
-
-      const product = new productModel(productData);
-      await product.save();
-
-      res.json({ success: true, message: "Product added successfully.", product });
+    const [newProducts] = await pool.execute("SELECT * FROM products WHERE id = ?", [result.insertId]);
+    res.json({ success: true, message: "Product added successfully.", product: newProducts[0] });
   } catch (error) {
     console.error("Error adding product:", error.message || error);
     res.status(500).json({ success: false, message: "Failed to add product." });
@@ -115,15 +80,25 @@ const addProduct = async (req, res) => {
 // List all products
 const listProducts = async (req, res) => {
   try {
-      const filter = {};
-      if (req.query.bestseller === 'true') filter.bestseller = true;
-      const products = await productModel.find(filter).populate({ path: 'lastEditedBy', select: 'name email' });
-    res.json({ success: true, products });
+    let query = "SELECT p.*, u.name as adminName, u.email as adminEmail FROM products p LEFT JOIN users u ON p.lastEditedBy = u.id";
+    const params = [];
+    
+    if (req.query.bestseller === 'true') {
+      query += " WHERE p.bestseller = 1";
+    }
+
+    const [products] = await pool.execute(query, params);
+    
+    // Map to match the previous structure if needed (e.g., populate)
+    const formattedProducts = products.map(p => ({
+      ...p,
+      lastEditedBy: p.lastEditedBy ? { name: p.adminName, email: p.adminEmail } : null
+    }));
+
+    res.json({ success: true, products: formattedProducts });
   } catch (error) {
     console.error("Error listing products:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch products." });
+    res.status(500).json({ success: false, message: "Failed to fetch products." });
   }
 };
 
@@ -131,24 +106,17 @@ const listProducts = async (req, res) => {
 const removeProduct = async (req, res) => {
   try {
     const { id } = req.body;
-    if (!id)
-      return res
-        .status(400)
-        .json({ success: false, message: "Product ID is required." });
+    if (!id) return res.status(400).json({ success: false, message: "Product ID is required." });
 
-    const deletedProduct = await productModel.findByIdAndDelete(id);
-    if (!deletedProduct) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found." });
+    const [result] = await pool.execute("DELETE FROM products WHERE id = ?", [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "Product not found." });
     }
 
     res.json({ success: true, message: "Product removed successfully." });
   } catch (error) {
     console.error("Error removing product:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to remove product." });
+    res.status(500).json({ success: false, message: "Failed to remove product." });
   }
 };
 
@@ -162,24 +130,29 @@ const updateProductQuantity = async (req, res) => {
     const q = parseInt(quantity, 10);
     if (Number.isNaN(q) || q < 0) return res.status(400).json({ success: false, message: 'Quantity must be a non-negative integer.' });
 
-    const product = await productModel.findById(id);
+    const [products] = await pool.execute("SELECT * FROM products WHERE id = ?", [id]);
+    const product = products[0];
     if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
 
-  const previousQuantity = product.quantity ?? 0;
-  product.quantity = q;
-  // record delta
-  product.lastQuantityDelta = q - previousQuantity;
-  // record last editor (from auth middleware: req.user or req.admin)
-  const tokenPayload = req.user || req.admin || {};
-  const userIdFromAuth = tokenPayload.id || tokenPayload._id || tokenPayload.userId;
-  if (userIdFromAuth) product.lastEditedBy = userIdFromAuth;
-  product.lastEditedAt = new Date();
-  // record edit history (what changed)
-  const changes = { quantity: { from: previousQuantity, to: q } };
-  product.editHistory.push({ editedBy: userIdFromAuth || null, editedAt: new Date(), changes });
-  await product.save();
+    const previousQuantity = product.quantity ?? 0;
+    const tokenPayload = req.user || req.admin || {};
+    const userIdFromAuth = tokenPayload.id || tokenPayload._id || tokenPayload.userId;
 
-    res.json({ success: true, message: 'Quantity updated successfully.', product });
+    const lastEditedAt = new Date();
+    const lastQuantityDelta = q - previousQuantity;
+    const changes = { quantity: { from: previousQuantity, to: q } };
+    
+    let editHistory = product.editHistory || [];
+    if (typeof editHistory === 'string') editHistory = JSON.parse(editHistory);
+    editHistory.push({ editedBy: userIdFromAuth || null, editedAt: lastEditedAt, changes });
+
+    await pool.execute(
+      "UPDATE products SET quantity = ?, lastQuantityDelta = ?, lastEditedBy = ?, lastEditedAt = ?, editHistory = ? WHERE id = ?",
+      [q, lastQuantityDelta, userIdFromAuth, lastEditedAt, JSON.stringify(editHistory), id]
+    );
+
+    const [updatedProducts] = await pool.execute("SELECT * FROM products WHERE id = ?", [id]);
+    res.json({ success: true, message: 'Quantity updated successfully.', product: updatedProducts[0] });
   } catch (error) {
     console.error('Error updating product quantity:', error);
     res.status(500).json({ success: false, message: 'Failed to update quantity.' });
@@ -190,25 +163,17 @@ const updateProductQuantity = async (req, res) => {
 const singleProduct = async (req, res) => {
   try {
     const { productId } = req.body;
-    if (!productId)
-      return res
-        .status(400)
-        .json({ success: false, message: "Product ID is required." });
+    if (!productId) return res.status(400).json({ success: false, message: "Product ID is required." });
 
-    const product = await productModel.findById(productId);
-    if (!product)
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found." });
+    const [products] = await pool.execute("SELECT * FROM products WHERE id = ?", [productId]);
+    const product = products[0];
+    if (!product) return res.status(404).json({ success: false, message: "Product not found." });
 
     res.json({ success: true, product });
   } catch (error) {
     console.error("Error fetching product:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch product." });
+    res.status(500).json({ success: false, message: "Failed to fetch product." });
   }
 };
 
-export { addProduct, listProducts, removeProduct, singleProduct };
-export { updateProductQuantity };
+export { addProduct, listProducts, removeProduct, singleProduct, updateProductQuantity };
