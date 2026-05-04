@@ -85,9 +85,13 @@ const Orders = ({ token }) => {
 
   const getBankStatementUrl = (bankStatement) => {
     if (!bankStatement || typeof bankStatement !== 'string') return null;
-    if (bankStatement.startsWith('http') || bankStatement.startsWith('/')) {
-      return bankStatement.startsWith('/') ? `${backendUrl}${bankStatement}` : bankStatement;
+    
+    // If it's a Cloudinary URL or an external link
+    if (bankStatement.startsWith('http')) {
+      return bankStatement;
     }
+    
+    // Otherwise, extract the filename from the local path (e.g., /home/.../uploads/file.jpg)
     const parts = bankStatement.split(/\\|\//);
     const filename = parts[parts.length - 1];
     return `${backendUrl}/uploads/${filename}`;
