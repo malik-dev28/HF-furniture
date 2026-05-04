@@ -51,7 +51,7 @@ const Cart = () => {
           </div>
         ) : (
           cartData.map((item, index) => {
-            const productData = products.find((product) => product._id === item._id);
+            const productData = products.find((product) => product._id == item._id);
 
             return (
               <div

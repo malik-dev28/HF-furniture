@@ -125,7 +125,23 @@ const verifyRazorpay = async (req, res) => {
 const allOrders = async (req, res) => {
   try {
     const [orders] = await pool.execute("SELECT * FROM orders ORDER BY createdAt DESC");
-    res.json({ success: true, orders });
+    const formattedOrders = orders.map(order => {
+      let items = [];
+      let address = {};
+      try {
+        items = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []);
+        address = typeof order.address === 'string' ? JSON.parse(order.address) : (order.address || {});
+      } catch (e) {
+        console.error(`Error parsing order ${order.id}:`, e);
+      }
+      return {
+        ...order,
+        _id: order.id,
+        items: Array.isArray(items) ? items : [],
+        address: address
+      };
+    });
+    res.json({ success: true, orders: formattedOrders });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
@@ -136,7 +152,23 @@ const userOrders = async (req, res) => {
   try {
     const userId = req.user?.id;
     const [orders] = await pool.execute("SELECT * FROM orders WHERE userId = ? ORDER BY createdAt DESC", [userId]);
-    res.json({ success: true, orders });
+    const formattedOrders = orders.map(order => {
+      let items = [];
+      let address = {};
+      try {
+        items = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []);
+        address = typeof order.address === 'string' ? JSON.parse(order.address) : (order.address || {});
+      } catch (e) {
+        console.error(`Error parsing order ${order.id}:`, e);
+      }
+      return {
+        ...order,
+        _id: order.id,
+        items: Array.isArray(items) ? items : [],
+        address: address
+      };
+    });
+    res.json({ success: true, orders: formattedOrders });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });

@@ -40,7 +40,7 @@ const PlaceOrder = () => {
       for (const items in cartItems) {
         for (const item in cartItems[items]) {
           if (cartItems[items][item] > 0) {
-            const itemInfo = structuredClone(products.find((product) => product._id === items));
+            const itemInfo = structuredClone(products.find((product) => product._id == items));
             if (itemInfo) {
               itemInfo.color = item;
               itemInfo.quantity = cartItems[items][item];

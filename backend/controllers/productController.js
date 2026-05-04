@@ -1,4 +1,4 @@
-import cloudinary from "../config/cloudinary.js";
+ import cloudinary from "../config/cloudinary.js";
 import pool from "../config/mysql.js";
 
 // Add product
@@ -11,6 +11,7 @@ const addProduct = async (req, res) => {
       subCategory,
       colors,
       quantity,
+      price,
     } = req.body;
 
     let adminUserId = null;
@@ -23,7 +24,8 @@ const addProduct = async (req, res) => {
       !category ||
       !subCategory ||
       !colors ||
-      !quantity
+      !quantity ||
+      !price
     ) {
       return res
         .status(400)
@@ -43,14 +45,19 @@ const addProduct = async (req, res) => {
         .json({ success: false, message: "At least one image is required." });
     }
 
+    console.log("Image files received:", imageFiles.length);
+
     const imagesUrl = await Promise.all(
-      imageFiles.map(async (file) => {
+      imageFiles.map(async (file, index) => {
         if (!file?.path) {
-          throw new Error("File path is missing for one of the uploaded images.");
+          console.error(`File path missing for image ${index + 1}`);
+          throw new Error(`File path is missing for image ${index + 1}.`);
         }
+        console.log(`Uploading image ${index + 1} to Cloudinary: ${file.path}`);
         const result = await cloudinary.uploader.upload(file.path, {
           resource_type: "image",
         });
+        console.log(`Upload success for image ${index + 1}: ${result.secure_url}`);
         return result.secure_url;
       })
     );
@@ -58,6 +65,7 @@ const addProduct = async (req, res) => {
     const parsedColors = typeof colors === "string" ? JSON.parse(colors) : colors;
     const bestseller = req.body.bestseller === 'true' || req.body.bestseller === true ? 1 : 0;
 
+    console.log("Inserting product into DB:", name);
     // Check for existing product by name
     const [existing] = await pool.execute("SELECT id FROM products WHERE LOWER(name) = ?", [name.toLowerCase().trim()]);
     if (existing.length > 0) {
@@ -65,15 +73,23 @@ const addProduct = async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      "INSERT INTO products (name, description, category, subCategory, colors, quantity, bestseller, image, createdBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [name, description, category, subCategory, JSON.stringify(parsedColors), parseInt(quantity), bestseller, JSON.stringify(imagesUrl), adminUserId]
+      "INSERT INTO products (name, description, category, subCategory, price, colors, quantity, bestseller, image, createdBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [name, description, category, subCategory, parseInt(price), JSON.stringify(parsedColors), parseInt(quantity), bestseller, JSON.stringify(imagesUrl), adminUserId]
     );
 
+    console.log("Product inserted, ID:", result.insertId);
+
     const [newProducts] = await pool.execute("SELECT * FROM products WHERE id = ?", [result.insertId]);
-    res.json({ success: true, message: "Product added successfully.", product: newProducts[0] });
+    const product = newProducts[0];
+    if (product) {
+      product._id = product.id;
+      if (typeof product.image === 'string') product.image = JSON.parse(product.image);
+      if (typeof product.colors === 'string') product.colors = JSON.parse(product.colors);
+    }
+    res.json({ success: true, message: "Product added successfully.", product });
   } catch (error) {
-    console.error("Error adding product:", error.message || error);
-    res.status(500).json({ success: false, message: "Failed to add product." });
+    console.error("Error adding product:", error);
+    res.status(500).json({ success: false, message: error.message || "Failed to add product." });
   }
 };
 
@@ -89,9 +105,13 @@ const listProducts = async (req, res) => {
 
     const [products] = await pool.execute(query, params);
     
-    // Map to match the previous structure if needed (e.g., populate)
+    // Map to match the previous structure and parse JSON fields
     const formattedProducts = products.map(p => ({
       ...p,
+      _id: p.id, // Map id to _id for frontend compatibility
+      image: typeof p.image === 'string' ? JSON.parse(p.image) : p.image,
+      colors: typeof p.colors === 'string' ? JSON.parse(p.colors) : p.colors,
+      editHistory: typeof p.editHistory === 'string' ? JSON.parse(p.editHistory) : p.editHistory,
       lastEditedBy: p.lastEditedBy ? { name: p.adminName, email: p.adminEmail } : null
     }));
 
@@ -152,7 +172,14 @@ const updateProductQuantity = async (req, res) => {
     );
 
     const [updatedProducts] = await pool.execute("SELECT * FROM products WHERE id = ?", [id]);
-    res.json({ success: true, message: 'Quantity updated successfully.', product: updatedProducts[0] });
+    const updatedProduct = updatedProducts[0];
+    if (updatedProduct) {
+      updatedProduct._id = updatedProduct.id;
+      if (typeof updatedProduct.image === 'string') updatedProduct.image = JSON.parse(updatedProduct.image);
+      if (typeof updatedProduct.colors === 'string') updatedProduct.colors = JSON.parse(updatedProduct.colors);
+      if (typeof updatedProduct.editHistory === 'string') updatedProduct.editHistory = JSON.parse(updatedProduct.editHistory);
+    }
+    res.json({ success: true, message: 'Quantity updated successfully.', product: updatedProduct });
   } catch (error) {
     console.error('Error updating product quantity:', error);
     res.status(500).json({ success: false, message: 'Failed to update quantity.' });
@@ -168,6 +195,12 @@ const singleProduct = async (req, res) => {
     const [products] = await pool.execute("SELECT * FROM products WHERE id = ?", [productId]);
     const product = products[0];
     if (!product) return res.status(404).json({ success: false, message: "Product not found." });
+
+    // Parse JSON fields and map id to _id
+    if (product.image && typeof product.image === 'string') product.image = JSON.parse(product.image);
+    if (product.colors && typeof product.colors === 'string') product.colors = JSON.parse(product.colors);
+    if (product.editHistory && typeof product.editHistory === 'string') product.editHistory = JSON.parse(product.editHistory);
+    product._id = product.id; // Map id to _id for frontend compatibility
 
     res.json({ success: true, product });
   } catch (error) {

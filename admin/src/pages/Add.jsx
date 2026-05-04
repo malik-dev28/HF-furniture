@@ -20,7 +20,8 @@ const Add = ({ token }) => {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [quantity, setQuantity] = useState("");
+   const [quantity, setQuantity] = useState("");
+  const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
   const [bestseller, setBestseller] = useState(false);
@@ -46,6 +47,7 @@ const Add = ({ token }) => {
       formData.append("name", name);
       formData.append("description", description);
       formData.append("quantity", quantity);
+      formData.append("price", price);
       formData.append("category", category);
       formData.append("subCategory", subCategory);
       formData.append("colors", JSON.stringify(colors));
@@ -70,6 +72,7 @@ const Add = ({ token }) => {
         setName("");
         setDescription("");
         setQuantity("");
+        setPrice("");
         setImage1(false);
         setImage2(false);
         setImage3(false);
@@ -255,6 +258,26 @@ const Add = ({ token }) => {
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               placeholder="Enter quantity (e.g., 10)"
+              required
+              min="0"
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 hover:bg-white"
+            />
+          </div>
+ 
+          {/* Price */}
+          <div>
+            <label
+              htmlFor="price"
+              className="block mb-2 text-sm font-semibold text-gray-700"
+            >
+              Price
+            </label>
+            <input
+              id="price"
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="Enter price (e.g., 100)"
               required
               min="0"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 hover:bg-white"
