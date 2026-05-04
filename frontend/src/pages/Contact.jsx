@@ -32,58 +32,83 @@ const locations = [
 
 const Contact = () => {
   return (
-    <div className="px-4 sm:px-8 md:px-16 lg:px-28 py-16  from-indigo-50 via-white to-purple-50 min-h-screen">
-      <div className="text-center pt-10 border-t border-gray-200">
+    <div className="px-4 sm:px-8 md:px-16 lg:px-28 pt-28 md:pt-36 pb-16 bg-gradient-to-r from-indigo-50 via-white to-purple-50 min-h-screen relative overflow-hidden">
+      <style>{styles}</style>
+      
+      <div className="text-center mb-16 animate-fade-in">
         <Title text1="CONTACT" text2="US" />
       </div>
 
-      <div className="my-12 flex flex-col md:flex-row items-center gap-8 sm:gap-10 animate-fade-in">
-        <img
-          className="w-full max-w-[400px] sm:max-w-[450px] md:max-w-[500px] rounded-xl shadow-lg object-cover"
-          src={assets.contact_img}
-          alt="Contact"
-        />
-        <div className="flex flex-col justify-center items-start gap-6">
-          <p className="font-bold text-2xl text-gray-800">Get in Touch</p>
-          <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+      <div className="my-16 max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12 sm:gap-16 animate-slide-in">
+        <div className="w-full lg:w-1/2 flex justify-center relative group">
+          <img
+            className="w-full max-w-[500px] rounded-[2rem] shadow-2xl object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+            src={assets.contact_img}
+            alt="Contact"
+          />
+        </div>
+        
+        <div className="w-full lg:w-1/2 flex flex-col justify-center items-start gap-6">
+          <p className="font-black text-3xl md:text-4xl text-gray-800 tracking-tight">Get in Touch</p>
+          <p className="text-gray-600 text-base md:text-lg leading-relaxed max-w-lg">
             We'd love to hear from you. Whether you're looking to visit our factory or shop at one of our retail locations,
             find the details below.
           </p>
-          <button className="border-2 border-indigo-600 px-8 py-3 text-sm font-semibold text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all duration-300 shadow-md hover:shadow-lg">
+          <button className="mt-4 border-2 border-indigo-600 px-8 py-4 text-sm font-bold text-indigo-600 uppercase tracking-widest rounded-xl hover:bg-indigo-600 hover:text-white transition-all duration-500 shadow-md hover:shadow-xl hover:-translate-y-1">
             Explore Careers
           </button>
         </div>
       </div>
 
-      <div className="space-y-12">
+      <div className="space-y-16 max-w-7xl mx-auto mt-24">
         {locations.map((loc, index) => (
-          <div key={index} className="pt-10 border-t border-gray-200 animate-slide-in">
-            <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8">
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3">{loc.title}</h3>
-              <p className="text-gray-600 mb-1 text-sm sm:text-base">{loc.address}</p>
-              <p className="text-gray-600 mb-1 text-sm sm:text-base">Tel: {loc.phone}</p>
-              <p className="text-gray-600 mb-4 text-sm sm:text-base">Email: {loc.email}</p>
-              <iframe
-                src={loc.mapSrc}
-                className="w-full h-64 sm:h-80 md:h-96 rounded-lg shadow-md border border-gray-200"
-                allowFullScreen=""
-                loading="lazy"
-                title={loc.title}
-              ></iframe>
-              <a
-                href={loc.mapLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-4 text-sm font-medium text-white bg-indigo-600 px-6 py-2 rounded-lg hover:bg-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg"
-              >
-                Open in Google Maps
-              </a>
+          <div key={index} className="animate-slide-in" style={{ animationDelay: `${index * 150}ms` }}>
+            <div className="bg-white rounded-[2rem] shadow-xl hover:shadow-2xl transition-all duration-500 p-8 sm:p-10 flex flex-col lg:flex-row gap-10 items-center border border-gray-100">
+              
+              <div className="w-full lg:w-1/3 flex flex-col justify-center space-y-6">
+                <h3 className="text-2xl sm:text-3xl font-black text-gray-800 tracking-tight">{loc.title}</h3>
+                
+                <div className="space-y-4">
+                  <div className="flex gap-4 items-start">
+                    <span className="text-xl">📍</span>
+                    <p className="text-gray-600 font-medium text-sm sm:text-base leading-relaxed">{loc.address}</p>
+                  </div>
+                  <div className="flex gap-4 items-center">
+                    <span className="text-xl">📞</span>
+                    <p className="text-gray-600 font-medium text-sm sm:text-base">{loc.phone}</p>
+                  </div>
+                  <div className="flex gap-4 items-center">
+                    <span className="text-xl">✉️</span>
+                    <p className="text-gray-600 font-medium text-sm sm:text-base">{loc.email}</p>
+                  </div>
+                </div>
+
+                <a
+                  href={loc.mapLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-4 text-xs font-bold text-white bg-indigo-600 px-6 py-3.5 rounded-xl hover:bg-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg uppercase tracking-widest text-center w-max"
+                >
+                  Open in Maps
+                </a>
+              </div>
+
+              <div className="w-full lg:w-2/3">
+                <iframe
+                  src={loc.mapSrc}
+                  className="w-full h-72 sm:h-80 md:h-[400px] rounded-2xl shadow-inner border border-gray-100 grayscale hover:grayscale-0 transition-all duration-700"
+                  allowFullScreen=""
+                  loading="lazy"
+                  title={loc.title}
+                ></iframe>
+              </div>
+              
             </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-16">
+      <div className="mt-24 max-w-4xl mx-auto">
         <NewsletterBox />
       </div>
     </div>
@@ -93,21 +118,21 @@ const Contact = () => {
 // Custom Tailwind animations
 const styles = `
   @keyframes fade-in {
-    from { opacity: 0; transform: translateY(15px); }
+    from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes slide-in {
-    from { opacity: 0; transform: translateX(-15px); }
+    from { opacity: 0; transform: translateX(-20px); }
     to { opacity: 1; transform: translateX(0); }
   }
 
   .animate-fade-in {
-    animation: fade-in 0.6s ease-out;
+    animation: fade-in 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 
   .animate-slide-in {
-    animation: slide-in 0.6s ease-out;
+    animation: slide-in 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 `;
 
