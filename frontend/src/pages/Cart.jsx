@@ -2,9 +2,10 @@ import { useContext, useEffect, useState } from 'react';
 import { ShopContext } from '../context/ShopContext';
 import Title from '../components/Title';
 import { assets } from '../assets/assets';
+import { toast } from 'react-toastify';
 
 const Cart = () => {
-  const { products, cartItems, updateQuantity, navigate } = useContext(ShopContext);
+  const { products, cartItems, updateQuantity, navigate, token } = useContext(ShopContext);
   const [cartData, setCartData] = useState([]);
 
   useEffect(() => {
@@ -115,7 +116,14 @@ const Cart = () => {
       {cartData.length > 0 && (
         <div className="flex justify-end px-4 sm:px-8 md:px-16 py-8">
           <button
-            onClick={() => navigate('/place-order')}
+            onClick={() => {
+              if (!token) {
+                toast.error("Please login or register to proceed to checkout.");
+                navigate('/login');
+              } else {
+                navigate('/place-order');
+              }
+            }}
             className="bg-teal-600 text-white px-8 py-3 text-sm font-medium rounded-lg hover:bg-teal-700 transition-all duration-300 shadow-md hover:shadow-lg"
           >
             PROCEED TO CHECKOUT

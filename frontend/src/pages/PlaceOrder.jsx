@@ -34,6 +34,13 @@ const PlaceOrder = () => {
 
   const onSubmitHandler = async (event) => {
     event.preventDefault();
+
+    if (!token) {
+      toast.error("Please login or register to place an order.");
+      navigate('/login');
+      return;
+    }
+
     try {
       let orderItems = [];
 
