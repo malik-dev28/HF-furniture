@@ -1,5 +1,5 @@
 import React from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import Home from './pages/Home'
 import Collection from './pages/Collection'
 import About from './pages/About'
@@ -19,25 +19,30 @@ import Verify from './pages/Verify'
 import Profile from './components/Profile'
 
 const App = () => {
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
+
   return (
-    <div className='px-4 sm:px-[5vw] md:px-[7vw] lg:px-[0vw]'>
+    <div className='px-4 sm:px-[5vw] md:px-[7vw] lg:px-[0vw] overflow-x-hidden'>
       <ToastContainer />
       <Navbar />
       <SearchBar />
-      <Routes>
-        <Route path='/' element={<Home />} />
-        <Route path='/collection' element={<Collection />} />
-  <Route path='/how-to-use' element={<HowToUse />} />
-        <Route path='/about' element={<About />} />
-        <Route path='/contact' element={<Contact />} />
-        <Route path='/product/:productId' element={<Product />} />
-        <Route path='/cart' element={<Cart />} />
-        <Route path='/login' element={<Login />} />
-        <Route path='/place-order' element={<PlaceOrder />} />
-        <Route path='/orders' element={<Orders />} />
-        <Route path='/verify' element={<Verify />} />
-        <Route path="/profile" element={<Profile />} />
-      </Routes>
+      <div className={`${isHomePage ? 'pt-0' : 'pt-28'} min-h-[70vh]`}>
+        <Routes>
+          <Route path='/' element={<Home />} />
+          <Route path='/collection' element={<Collection />} />
+          <Route path='/how-to-use' element={<HowToUse />} />
+          <Route path='/about' element={<About />} />
+          <Route path='/contact' element={<Contact />} />
+          <Route path='/product/:productId' element={<Product />} />
+          <Route path='/cart' element={<Cart />} />
+          <Route path='/login' element={<Login />} />
+          <Route path='/place-order' element={<PlaceOrder />} />
+          <Route path='/orders' element={<Orders />} />
+          <Route path='/verify' element={<Verify />} />
+          <Route path="/profile" element={<Profile />} />
+        </Routes>
+      </div>
       <Footer />
     </div>
   )

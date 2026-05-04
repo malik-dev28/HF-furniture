@@ -86,125 +86,134 @@ const Login = () => {
   }, [token, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <form
-        onSubmit={onSubmitHandler}
-        className="w-full max-w-md bg-white rounded-lg shadow-lg p-6 sm:p-8 space-y-6"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 font-serif">
-            {currentState}
-          </h2>
-          <hr className="w-10 h-0.5 bg-gray-900" />
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-white py-20 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-700">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-indigo-50/50 rounded-full blur-3xl opacity-60 animate-pulse"></div>
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-blue-50/50 rounded-full blur-3xl opacity-60 animate-pulse"></div>
+      </div>
 
-        {/* Form Fields */}
-        <div className="space-y-4">
-          {currentState === "Sign Up" && (
-            <>
+      <div className="relative w-full max-w-md">
+        <div className="bg-white/70 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] border border-white/40 p-10 sm:p-12">
+          {/* Header */}
+          <div className="text-center mb-10">
+            <h2 className="text-4xl font-black text-gray-900 tracking-tighter mb-2">
+              {currentState === 'Login' ? 'Welcome Back' : 'Create Account'}
+            </h2>
+            <p className="text-gray-400 text-sm font-medium">
+              {currentState === 'Login' ? 'Access your premium HF collection.' : 'Join our elite circle of design lovers.'}
+            </p>
+          </div>
+
+          <form onSubmit={onSubmitHandler} className="space-y-5">
+            {currentState === "Sign Up" && (
+              <div className="animate-in slide-in-from-top-2 duration-300">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Full Name"
+                  className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-600 transition-all duration-300 font-semibold text-gray-700 placeholder:text-gray-300"
+                  required
+                />
+              </div>
+            )}
+            
+            {currentState === "Sign Up" && (
+              <div className="animate-in slide-in-from-top-2 duration-300">
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Phone Number"
+                  className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-600 transition-all duration-300 font-semibold text-gray-700 placeholder:text-gray-300"
+                  required
+                />
+              </div>
+            )}
+
+            <div className="animate-in slide-in-from-top-2 duration-300 delay-75">
               <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Full Name"
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email Address"
+                className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-600 transition-all duration-300 font-semibold text-gray-700 placeholder:text-gray-300"
                 required
               />
+            </div>
+
+            <div className="animate-in slide-in-from-top-2 duration-300 delay-150">
               <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Phone Number"
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-600 transition-all duration-300 font-semibold text-gray-700 placeholder:text-gray-300"
                 required
               />
-            </>
-          )}
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email Address"
-            className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
-            required
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
-            required
-          />
-          {currentState === "Sign Up" && (
-            <input
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder="Confirm Password"
-              className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
-              required
-            />
-          )}
-        </div>
+            </div>
 
-        {/* Links */}
-        <div className="flex justify-between text-xs sm:text-sm text-gray-600">
-          <a
-            href="#"
-            className="hover:text-indigo-600 transition-colors duration-200"
-          >
-            Forgot your password?
-          </a>
-          <button
-            type="button"
-            onClick={() => setCurrentState(currentState === "Login" ? "Sign Up" : "Login")}
-            className="hover:text-indigo-600 transition-colors duration-200"
-          >
-            {currentState === "Login" ? "Create account" : "Login Here"}
-          </button>
-        </div>
+            {currentState === "Sign Up" && (
+              <div className="animate-in slide-in-from-top-2 duration-300 delay-200">
+                <input
+                  type="password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  placeholder="Confirm Password"
+                  className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-600 transition-all duration-300 font-semibold text-gray-700 placeholder:text-gray-300"
+                  required
+                />
+              </div>
+            )}
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className={`w-full py-2.5 px-6 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-md hover:from-indigo-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 ${
-            isLoading ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-        >
-          {isLoading ? (
-            <span className="flex items-center justify-center">
-              <svg
-                className="animate-spin h-5 w-5 mr-2 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
+            {/* Actions */}
+            <div className="flex flex-col gap-6 pt-4">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`w-full py-5 bg-gray-900 hover:bg-indigo-600 text-white font-black tracking-widest text-xs uppercase rounded-2xl shadow-xl transform transition-all duration-300 hover:-translate-y-1 active:scale-95 ${
+                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              Processing...
-            </span>
-          ) : currentState === "Login" ? (
-            "Sign In"
-          ) : (
-            "Sign Up"
-          )}
-        </button>
-      </form>
+                {isLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>Processing</span>
+                  </div>
+                ) : (
+                  currentState === "Login" ? "Sign In" : "Register Account"
+                )}
+              </button>
+
+              <div className="flex flex-col items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCurrentState(currentState === "Login" ? "Sign Up" : "Login")}
+                  className="text-[10px] font-black text-gray-400 hover:text-indigo-600 uppercase tracking-widest transition-colors duration-300"
+                >
+                  {currentState === "Login" ? "New here? Create account" : "Already a member? Sign In"}
+                </button>
+                {currentState === "Login" && (
+                  <button type="button" className="text-[10px] font-bold text-gray-300 hover:text-gray-600 uppercase tracking-widest transition-colors">
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slide-in-from-top-2 { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation-fill-mode: forwards; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+        .fade-in { animation-name: fade-in; }
+        .slide-in-from-top-2 { animation-name: slide-in-from-top-2; }
+        .delay-75 { animation-delay: 75ms; }
+        .delay-150 { animation-delay: 150ms; }
+        .delay-200 { animation-delay: 200ms; }
+      `}</style>
     </div>
   );
 };

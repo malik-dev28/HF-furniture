@@ -60,35 +60,34 @@ const Hero = () => {
 
   return (
     <BackgroundGradientAnimation>
-      <div className="relative z-10 w-full h-screen flex flex-col md:flex-row px-6 sm:px-4 text-black">
+      <div className="relative z-10 w-full min-h-screen pb-10 md:pb-0 flex flex-col md:flex-row px-5 sm:px-12 md:px-16 text-black pt-28 lg:pt-32">
         {/* Text and Buttons */}
-        <div className="w-full md:w-1/2 max-w-3xl md:text-left mt-20 md:mt-[120px]">
+        <div className="w-full md:w-1/2 max-w-3xl text-left mt-6 sm:mt-10 md:mt-20">
           {/* Heading */}
-          <h1 className="prata-regular text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-tight md:leading-[1.05] tracking-tight mb-6">
-            <span className="bg-clip-text text-transparent bg-gradient-to-br from-blue-900 via-blue-700 to-blue-600 drop-shadow-[0_4px_12px_rgba(59,130,246,0.12)]">
+          <h1 className="prata-regular text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-tight md:leading-[1.05] tracking-tight mb-6 sm:mb-8">
+            <span className="bg-clip-text text-transparent bg-gradient-to-br from-blue-900 via-blue-700 to-blue-600">
               Modern & Luxury Furniture
             </span>
             <br /> 
-            <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl mt-4 block gap-6">
+            <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl mt-6 block">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-600 to-blue-900">Made</span>
-              <span className="text-red-600 mx-2">,</span>
+              <span className="text-red-600 mx-1">,</span>
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-600 to-red-800">Importers</span>
-              <span className="text-red-600 mx-2">,</span>
+              <span className="text-red-600 mx-1">,</span>
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-600 to-red-800">Distributors</span>
             </span>
           </h1>
-
+ 
           {/* Buttons */}
-          <div className="mt-8 flex flex-col sm:flex-row md:justify-start justify-center gap-4 sm:gap-6">
-            <button onClick={() => navigate('/collection')} className="bg-gradient-to-r from-blue-700 to-blue-900 text-white px-6 py-3 sm:px-7 sm:py-3.5 rounded-full font-bold uppercase text-xs sm:text-sm tracking-widest hover:opacity-95 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
+          <div className="mt-10 flex flex-col sm:flex-row md:justify-start justify-center gap-4 sm:gap-6">
+            <button onClick={() => navigate('/collection')} className="bg-gradient-to-r from-blue-700 to-blue-900 text-white px-8 py-4 rounded-full font-bold uppercase text-xs sm:text-sm tracking-widest hover:opacity-95 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
               Shop Collection
             </button>
-            <button onClick={() => navigate('/how-to-use')} className="border-2 border-red-600/80 text-red-700 px-5 py-3 sm:px-6 sm:py-3.5 rounded-full font-bold uppercase text-xs sm:text-sm tracking-widest hover:bg-red-600 hover:text-white transition-all duration-300 bg-white/90 backdrop-blur-sm">
+            <button onClick={() => navigate('/how-to-use')} className="border-2 border-red-600 text-red-700 px-7 py-4 rounded-full font-bold uppercase text-xs sm:text-sm tracking-widest hover:bg-red-600 hover:text-white transition-all duration-300 bg-white/90 backdrop-blur-sm">
               How to use
             </button>
           </div>
         </div>
-<br /> <br />
         {/* Mobile Carousel */}
         <div className="md:hidden w-full mt-10 flex items-center justify-center">
           {slides.length === 0 ? (

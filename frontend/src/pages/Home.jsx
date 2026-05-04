@@ -7,38 +7,38 @@ import NewsletterBox from '../components/NewsletterBox';
 
 const Home = () => {
   return (
-    <div className="bg-white">
-      {/* Hero Section - Full-bleed, flush to top with increased vertical size */}
-      <section className="min-h-screen flex items-center justify-center m-0 p-0">
-        <div className="w-full h-full">
-          <Hero />
-        </div>
+    <div className="bg-white relative overflow-hidden">
+      <style>{styles}</style>
+      
+      {/* Hero Section - Full-bleed */}
+      <section className="relative w-full min-h-screen flex items-center justify-center m-0 p-0">
+        <Hero />
       </section>
 
       {/* Latest Collection Section */}
-      <section className="py-16 sm:py-20 lg:py-28 px-4 sm:px-6 lg:px-12 border-t border-gray-200">
-        <div className="w-full mx-auto">
+      <section className="relative py-20 sm:py-28 lg:py-36 px-4 sm:px-10 lg:px-16 bg-white z-10">
+        <div className="max-w-7xl mx-auto w-full">
           <LatestCollection />
         </div>
       </section>
 
       {/* Best Seller Section */}
-      <section className="py-16 sm:py-20 lg:py-28 px-4 sm:px-6 lg:px-12 bg-white border-t border-gray-200">
-        <div className="w-full mx-auto">
+      <section className="relative py-20 sm:py-28 lg:py-36 px-4 sm:px-10 lg:px-16 bg-gradient-to-b from-gray-50/80 to-white z-10">
+        <div className="max-w-7xl mx-auto w-full">
           <BestSeller />
         </div>
       </section>
 
       {/* Our Policy Section */}
-      <section className="py-16 sm:py-20 lg:py-28 px-4 sm:px-6 lg:px-12 border-t border-gray-200">
-        <div className="w-full mx-auto">
+      <section className="relative py-16 sm:py-24 lg:py-32 px-4 sm:px-10 lg:px-16 bg-white z-10 border-t border-gray-100/50">
+        <div className="max-w-7xl mx-auto w-full">
           <OurPolicy />
         </div>
       </section>
 
       {/* Newsletter Section */}
-      <section className="py-16 sm:py-20 lg:py-28 px-4 sm:px-6 lg:px-12 bg-white border-t border-gray-200">
-        <div className="w-full mx-auto">
+      <section className="relative py-20 sm:py-28 lg:py-36 px-4 sm:px-10 lg:px-16 bg-gradient-to-b from-white to-indigo-50/20 z-10">
+        <div className="max-w-4xl mx-auto w-full">
           <NewsletterBox />
         </div>
       </section>
